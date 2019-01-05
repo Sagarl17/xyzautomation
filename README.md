@@ -1,7 +1,7 @@
 project_name
 ==============================
 
-test
+XYZ-AUTOMATION
 
 Project Organization
 ------------
@@ -19,9 +19,7 @@ Project Organization
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
+    ├── notebooks          <- Jupyter notebooks.
     │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
@@ -32,6 +30,7 @@ Project Organization
     │                         generated with `pip freeze > requirements.txt`
     │
     ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
+    ├── main.py            <- main script which executes the classification and extraction process step by step
     ├── src                <- Source code for use in this project.
     │   ├── __init__.py    <- Makes src a Python module
     │   │
@@ -40,6 +39,16 @@ Project Organization
     │   │
     │   ├── features       <- Scripts to turn raw data into features for modeling
     │   │   └── build_features.py
+    |   ├── helpers        <- Scripts that convert the classified point cloud into the individual point-clouds
+    |   |   |                 and correspoding shapefiles
+    │   │   |
+    │   │   ├── buildings.py
+    │   │   ├── ground.py
+    │   │   ├── logger.py
+    │   │   ├── roads.py
+    │   │   ├── utils.py
+    │   │   └── vegetation.py
+    │   │   └── z2ht.py
     │   │
     │   ├── models         <- Scripts to train models and then use trained models to make
     │   │   │                 predictions
@@ -53,5 +62,3 @@ Project Organization
 
 
 --------
-
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>

@@ -1,4 +1,8 @@
 env
+*.las
+*.npy
+/logs/*.txt
+.vscode/
+*.sav 
 /src/__pycache__/__init__.cpython-36.pyc
 *.pyc
-

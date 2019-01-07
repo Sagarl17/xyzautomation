@@ -51,106 +51,107 @@ else :
 	ground_file_name,Header_for_all = z2ht.change_z_to_ht(input_file_name)
 	logger.info('Grounded LAS File Created')
 
-############################################################################
-# trees extraction
+if ("trees" in sys.argv):
+	############################################################################
+	# trees extraction
 
-logger.info("Trees Extraction : Started")
+	logger.info("Trees Extraction : Started")
 
-if (os.path.exists("./data/processed/full_trees.las")):
-	trees_file = "full_trees.las"
-	logger.info('Found All Trees LAS File Already LoadingInfo...')
-else :
-	trees_file = vegetation.points_from_LAS(ground_file_name)
-	logger.info('All Trees LAS File Created')
-
-
-logger.info("Trees Extraction : Done")
-
-############################################################################
-#Removing misclassified points with color constraints
+	if (os.path.exists("./data/processed/full_trees.las")):
+		trees_file = "full_trees.las"
+		logger.info('Found All Trees LAS File Already LoadingInfo...')
+	else :
+		trees_file = vegetation.points_from_LAS(ground_file_name)
+		logger.info('All Trees LAS File Created')
 
 
-if (os.path.exists("./data/interim/trees_main_filtered.las")):
-	filtered_file = "trees_main_filtered.las"
-	logger.info('Filtered Trees LAS File Already LoadingInfo...')
+	logger.info("Trees Extraction : Done")
 
-else :
-	print("File Check error")
-	filtered_file = vegetation.filter_green(trees_file)
-	logger.info('Filtered Trees LAS File Created')
-
-############################################################################
-#Getting Json files of trees with trees as points
-
-distance_b = 300
-
-if not(os.path.exists("./data/external/tree_data.json")):
-	all_tree_top,no_intial_ttops,point_3d,scales,offsets = vegetation.tree_top_cand(filtered_file)
-	logger.info('Found All Trees top with local maximum')
-	new_ttops = vegetation.merging_adj_ttops(all_tree_top,no_intial_ttops)
-	logger.info('Merged very close Tree Tops')
-	neighbours = vegetation.getting_neighbour(new_ttops,point_3d)
-	logger.info('Found Neighbours of each Tree Top')
-	parameters_tree = vegetation.tree_parameters_npy(neighbours,point_3d,scales,offsets)
-	logger.info('Trees Parameter Calculated')
-	polygons = parameters_tree[0]
-	radius,location = vegetation.Proj_to_latlong(polygons,scales,offsets)
-	vegetation.trees_parameter_json(parameters_tree,radius,location)
-	logger.info('JSON file with parameters Saved')
+	############################################################################
+	#Removing misclassified points with color constraints
 
 
-############################################################################
-#Extracting Building Points
+	if (os.path.exists("./data/interim/trees_main_filtered.las")):
+		filtered_file = "trees_main_filtered.las"
+		logger.info('Filtered Trees LAS File Already LoadingInfo...')
 
-logger.info("Building Extraction : Started")
+	else :
+		print("File Check error")
+		filtered_file = vegetation.filter_green(trees_file)
+		logger.info('Filtered Trees LAS File Created')
 
-if (os.path.exists("./data/processed/buildings.las")):
-	infile=laspy.file.File('./data/processed/buildings.las',mode='rw')
-	main_header = infile.header
-	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
-	logger.info('Found Building LAS File Already LoadingInfo...')
-else :
-	point_3d,main_header = buildings.building_LAS(ground_file_name)
-	logger.info('Building Points Extracted')
+	############################################################################
+	#Getting Json files of trees with trees as points
 
-logger.info("Building Extraction : Finished")
+	distance_b = 300
 
-###########################################################################
-#Clustering process for Buildings
+	if not(os.path.exists("./data/external/tree_data.json")):
+		all_tree_top,no_intial_ttops,point_3d,scales,offsets = vegetation.tree_top_cand(filtered_file)
+		logger.info('Found All Trees top with local maximum')
+		new_ttops = vegetation.merging_adj_ttops(all_tree_top,no_intial_ttops)
+		logger.info('Merged very close Tree Tops')
+		neighbours = vegetation.getting_neighbour(new_ttops,point_3d)
+		logger.info('Found Neighbours of each Tree Top')
+		parameters_tree = vegetation.tree_parameters_npy(neighbours,point_3d,scales,offsets)
+		logger.info('Trees Parameter Calculated')
+		polygons = parameters_tree[0]
+		radius,location = vegetation.Proj_to_latlong(polygons,scales,offsets)
+		vegetation.trees_parameter_json(parameters_tree,radius,location)
+		logger.info('JSON file with parameters Saved')
 
-logger.info("Building Clustering : Started")
+if ("buildings" in sys.argv):
+	############################################################################
+	#Extracting Building Points
 
-if (os.path.exists("./data/interim/Clustered.las")):
-	logger.info('Clustering Already Done')
-else :
-	buildings.Clustering()
-	logger.info('Clustering Extracted')
+	logger.info("Building Extraction : Started")
 
-logger.info("Building Clustering : Finished")
+	if (os.path.exists("./data/processed/buildings.las")):
+		infile=laspy.file.File('./data/processed/buildings.las',mode='rw')
+		main_header = infile.header
+		point_3d=np.vstack([infile.x,infile.y,infile.z]).T
+		logger.info('Found Building LAS File Already LoadingInfo...')
+	else :
+		point_3d,main_header = buildings.building_LAS(ground_file_name)
+		logger.info('Building Points Extracted')
 
-###########################################################################
-#Creating Polygons and getting json file
+	logger.info("Building Extraction : Finished")
 
-logger.info("Creating Polygons : Started")
+	###########################################################################
+	#Clustering process for Buildings
 
-if (os.path.exists("./data/interim/Buildings_data.json")):
-	logger.info('Building polygons already extracted')
-else :
-	buildings.Polygonextraction()
-	logger.info('Polygon Extraction Completed')
+	logger.info("Building Clustering : Started")
 
-logger.info("Creating Polygons : Finished")
+	if (os.path.exists("./data/interim/Clustered.las")):
+		logger.info('Clustering Already Done')
+	else :
+		buildings.Clustering()
+		logger.info('Clustering Extracted')
+
+	logger.info("Building Clustering : Finished")
+
+	###########################################################################
+	#Creating Polygons and getting json file
+
+	logger.info("Creating Polygons : Started")
+
+	if (os.path.exists("./data/interim/Buildings_data.json")):
+		logger.info('Building polygons already extracted')
+	else :
+		buildings.Polygonextraction()
+		logger.info('Polygon Extraction Completed')
+
+	logger.info("Creating Polygons : Finished")
 
 
-###########################################################################
-#Merging Polygons and getting json file
+	###########################################################################
+	#Merging Polygons and getting json file
 
-logger.info("Merging Polygons : Started")
+	logger.info("Merging Polygons : Started")
 
-if (os.path.exists("./data/external/Merged_Buildings_data.json")):
-	logger.info('Building polygons already merged')
-else :
-	buildings.Mergingpolygons()
-	logger.info('Polygons merged')
+	if (os.path.exists("./data/external/Merged_Buildings_data.json")):
+		logger.info('Building polygons already merged')
+	else :
+		buildings.Mergingpolygons()
+		logger.info('Polygons merged')
 
-logger.info("Merging Polygons : Finished")
+	logger.info("Merging Polygons : Finished")

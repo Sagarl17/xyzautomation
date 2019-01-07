@@ -14,6 +14,8 @@ Project Organization
     │   ├── interim        <- Intermediate data that has been transformed.
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
+    ├── logs               <- Folder which contains the log files which are saved during the execution of
+    |                         the process.
     │
     ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
     │
@@ -62,3 +64,8 @@ Project Organization
 
 
 --------
+How to Run :
+
+->python main.py <path to las file> <combinations of classifications that are required by the user>
+
+Ex: python main.py example.las buildings trees 

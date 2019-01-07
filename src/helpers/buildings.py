@@ -13,7 +13,7 @@ def building_LAS(ground_file_name):
 	cand = [i for i in range(len(point_3d)) if ((classess[i]==6 and ((point_3d[i,4]<0.45*point_3d[i,3]+0.61*point_3d[i,5])and ((.85*point_3d[i,4]<point_3d[i,3])and(.7*point_3d[i,4]<point_3d[i,5])))) and point_3d[i,2]>0)]
 	point_to_store = np.take(infile.points,cand)
 	point_to_return = point_3d[cand]
-	outfile_name = "Buildings.las"
+	outfile_name = "buildings.las"
 	outfile=laspy.file.File("./data/processed/"+outfile_name,mode="w",header=infile.header)
 	outfile.points=point_to_store
 	outfile.close()
@@ -22,12 +22,10 @@ def building_LAS(ground_file_name):
 
 def Clustering():
 	infile=laspy.file.File('./data/processed/buildings.las',mode='rw')
-	main_header = infile.header
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	d=len(point_3d)
 
-	tree = KDTree(point_3d)                                       # Create KDtree representation of pointcloud
-	Clusters=[]
+	tree = KDTree(point_3d)
 	points=[]
 	intensity=[]
 	FC=set()                                               # Intialize empty cluster list

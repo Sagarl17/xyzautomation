@@ -25,7 +25,7 @@ def predict():
 	c = model.predict(test_data[:,:-1])
 	logger.info("prediction done")
 	logger.info("Saving file")
-	infile = laspy.file.File(sys.argv[1], mode='rw')
+	infile = laspy.file.File('./data/raw/'+sys.argv[1], mode='rw')
 	outfile = laspy.file.File('./data/interim/classified_'+sys.argv[1], mode="w", header=infile.header)
 	outfile.points = infile.points
 	outfile.classification = c.astype('uint32')

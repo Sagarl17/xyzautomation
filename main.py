@@ -104,8 +104,8 @@ if not(os.path.exists("./data/external/tree_data.json")):
 
 logger.info("Building Extraction : Started")
 
-if (os.path.exists("./data/processed/Buildings.las")):
-	infile=laspy.file.File('./data/processed/Buildings.las',mode='rw')
+if (os.path.exists("./data/processed/buildings.las")):
+	infile=laspy.file.File('./data/processed/buildings.las',mode='rw')
 	main_header = infile.header
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	logger.info('Found Building LAS File Already LoadingInfo...')
@@ -140,7 +140,7 @@ else :
 	logger.info('Polygon Extraction Completed')
 
 logger.info("Creating Polygons : Finished")
-	
+
 
 ###########################################################################
 #Merging Polygons and getting json file

@@ -16,7 +16,6 @@ import pandas as ps
 
 
 filename = str(sys.argv[1])
-print(filename)
 
 class featurecalculation:
 	def features(self,filename):
@@ -147,7 +146,6 @@ if not(os.path.exists("./data/interim/"+filename[:-4]+"_features.npy")):
 	xyz = data.as_matrix(columns = ['x', 'y', 'z'])
 	data = data.as_matrix(columns = ['x', 'y', 'z', 'r', 'g', 'b', 'c'])
 	division = np.shape(xyz)[0]//maximum_points + 1
-	print("division is ")
 	full_training_data = np.zeros((np.shape(xyz)[0],22))
 	fe=featurecalculation()
 	fe.features(filename)

@@ -1,7 +1,7 @@
 
 import random as rd
 import numpy as np
-from src.helpers import logger,z2ht,vegetation,buildings
+from src.helpers import logger,z2ht,vegetation,buildings,roads,ground
 
 import laspy
 import pandas as ps
@@ -38,7 +38,6 @@ logger.info('prediction : Done')
 # converting the z-coord to actual height above the ground
 
 input_file_name = './data/interim/classified_'+sys.argv[1]
-print(input_file_name)
 
 
 
@@ -76,7 +75,6 @@ if ("trees" in sys.argv):
 		logger.info('Filtered Trees LAS File Already LoadingInfo...')
 
 	else :
-		print("File Check error")
 		filtered_file = vegetation.filter_green(trees_file)
 		logger.info('Filtered Trees LAS File Created')
 
@@ -155,3 +153,43 @@ if ("buildings" in sys.argv):
 		logger.info('Polygons merged')
 
 	logger.info("Merging Polygons : Finished")
+
+#################################################################################
+
+if ("roads" in sys.argv):
+	############################################################################
+	#Extracting Road Points
+
+	logger.info("Road Extraction : Started")
+
+	if (os.path.exists("./data/processed/roads.las")):
+		infile=laspy.file.File('./data/processed/roads.las',mode='rw')
+		main_header = infile.header
+		point_3d=np.vstack([infile.x,infile.y,infile.z]).T
+		logger.info('Found Road LAS File Already LoadingInfo...')
+	else :
+		point_3d,main_header = roads.road_LAS(ground_file_name)
+		logger.info('Road Points Extracted')
+
+	logger.info("Road Extraction : Finished")
+
+
+
+if ("ground" in sys.argv):
+	############################################################################
+	#Extracting Ground Points
+
+	logger.info("Ground Extraction : Started")
+
+	if (os.path.exists("./data/processed/ground.las")):
+		infile=laspy.file.File('./data/processed/ground.las',mode='rw')
+		main_header = infile.header
+		point_3d=np.vstack([infile.x,infile.y,infile.z]).T
+		logger.info('Found Ground LAS File Already LoadingInfo...')
+	else :
+		point_3d,main_header = ground.ground_LAS(ground_file_name)
+		logger.info('Ground Points Extracted')
+
+	logger.info("Ground Extraction : Finished")
+
+

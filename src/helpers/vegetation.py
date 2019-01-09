@@ -28,27 +28,26 @@ def filter_green(trees_file):
 	'''
 	Removing the misclassified trees points with constraints over color
 	'''
-	color_threshold = 25
-
-	green_colors = [[124,252,0],[127,255,0],[50,205,50],[0,255,0],[34,139,34],[0,128,0],[0,100,0],[173,255,47],
-					[154,205,50],[0,255,127],[0,250,154],[144,238,144],[152,251,152],[143,188,143],[60,179,113],
-					[32,178,170],[46,139,87],[128,128,0],[85,107,47],[107,142,35]]
-
 	infile=laspy.file.File('./data/processed/'+trees_file,mode='rw')
-	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
-	colors = np.vstack([infile.red,infile.green,infile.blue]).T
-	colors = colors/256
+	point_3d=np.vstack([infile.x,infile.y,infile.z,infile.red,infile.green,infile.blue]).T
 
 	filtered_point = []
 	for i in range(np.shape(colors)[0]):
 		for j in green_colors:
-			if abs(colors[i][0]-j[0])<color_threshold and abs(colors[i][1]-j[1])<color_threshold and abs(colors[i][2]-j[2])<color_threshold:
+			if (point_3d[i,4]>=0.39*point_3d[i,3]+0.61*point_3d[i,5]) :
 				filtered_point.append(i)
 				break
+	P=list(range(0,len(infile.points)))
+	Q=list(set(P)-set(filtered_point))
 	outfile_name = "trees_main_filtered.las"
 	point_filt = np.take(infile.points,filtered_point)
+	point_left = np.take(infile.points,Q)
 	outfile=laspy.file.File("./data/interim/"+outfile_name,mode="w",header=infile.header)
 	outfile.points=point_filt
+	outfile.close()
+	outfile_name="points_after_filtration.las"
+	outfile=laspy.file.File("./data/interim/"+outfile_name,mode="w",header=infile.header)
+	outfile.points=point_left
 	outfile.close()
 	infile.close()
 	return outfile_name

@@ -26,11 +26,11 @@ def predict():
 	logger.info("prediction done")
 	logger.info("Saving file")
 	infile = laspy.file.File('./data/raw/'+sys.argv[1], mode='rw')
-	outfile = laspy.file.File('./data/interim/classified_'+sys.argv[1], mode="w", header=infile.header)
+	outfile = laspy.file.File('./data/interim/tobe_classified_'+sys.argv[1], mode="w", header=infile.header)
 	outfile.points = infile.points
 	outfile.classification = c.astype('uint32')
 	infile.close()
 	outfile.close()
 
-if not(os.path.exists("./data/interim/classified_"+sys.argv[1])):
+if not(os.path.exists("./data/interim/tobe_classified_"+sys.argv[1])):
 	predict()

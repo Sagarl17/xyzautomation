@@ -1,7 +1,7 @@
 
 import random as rd
 import numpy as np
-from src.helpers import logger,z2ht,vegetation,buildings,roads,ground
+from src.helpers import logger,z2ht,vegetation,buildings,roads,ground,reclassification
 
 import laspy
 import pandas as ps
@@ -33,6 +33,15 @@ logger.info("prediction : Started")
 exec(open('./src/models/predict_model.py').read())
 
 logger.info('prediction : Done')
+
+############################################################################
+#reclassifying misclassified points based on characterstics of points
+
+logger.info("Reclassifying : Started")
+if not(os.path.exists("./data/interim/classified_"+sys.argv[1])):
+	reclassification.rc()
+
+logger.info('Reclassifying : Done')
 
 ############################################################################
 # converting the z-coord to actual height above the ground
@@ -67,24 +76,12 @@ if ("trees" in sys.argv):
 	logger.info("Trees Extraction : Done")
 
 	############################################################################
-	#Removing misclassified points with color constraints
-
-
-	if (os.path.exists("./data/interim/trees_main_filtered.las")):
-		filtered_file = "trees_main_filtered.las"
-		logger.info('Filtered Trees LAS File Already LoadingInfo...')
-
-	else :
-		filtered_file = vegetation.filter_green(trees_file)
-		logger.info('Filtered Trees LAS File Created')
-
-	############################################################################
 	#Getting Json files of trees with trees as points
 
 	distance_b = 300
 
 	if not(os.path.exists("./data/external/tree_data.json")):
-		all_tree_top,no_intial_ttops,point_3d,scales,offsets = vegetation.tree_top_cand(filtered_file)
+		all_tree_top,no_intial_ttops,point_3d,scales,offsets = vegetation.tree_top_cand(trees_file)
 		logger.info('Found All Trees top with local maximum')
 		new_ttops = vegetation.merging_adj_ttops(all_tree_top,no_intial_ttops)
 		logger.info('Merged very close Tree Tops')

@@ -7,14 +7,14 @@ from collections import defaultdict,OrderedDict
 from pyproj import Proj,transform
 from scipy import spatial,optimize
 
-def points_from_LAS(input_file_name,class_number_tree=5):
+def points_from_LAS(input_file_name):
 	'''
 	extracting the tree points from the classified point cloud
 	'''
 	infile=laspy.file.File('./'+input_file_name,mode='rw')
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	classess=infile.classification
-	cand = [i for i in range(len(point_3d)) if classess[i]==class_number_tree]
+	cand = [i for i in range(len(point_3d)) if classess[i]==5]
 	point_3d = np.take(infile.points,cand)
 
 	outfile_name = "full_trees.las"
@@ -24,40 +24,12 @@ def points_from_LAS(input_file_name,class_number_tree=5):
 	infile.close()
 	return outfile_name
 
-def filter_green(trees_file):
-	'''
-	Removing the misclassified trees points with constraints over color
-	'''
-	infile=laspy.file.File('./data/processed/'+trees_file,mode='rw')
-	point_3d=np.vstack([infile.x,infile.y,infile.z,infile.red,infile.green,infile.blue]).T
-
-	filtered_point = []
-	for i in range(np.shape(colors)[0]):
-		for j in green_colors:
-			if (point_3d[i,4]>=0.39*point_3d[i,3]+0.61*point_3d[i,5]) :
-				filtered_point.append(i)
-				break
-	P=list(range(0,len(infile.points)))
-	Q=list(set(P)-set(filtered_point))
-	outfile_name = "trees_main_filtered.las"
-	point_filt = np.take(infile.points,filtered_point)
-	point_left = np.take(infile.points,Q)
-	outfile=laspy.file.File("./data/interim/"+outfile_name,mode="w",header=infile.header)
-	outfile.points=point_filt
-	outfile.close()
-	outfile_name="points_after_filtration.las"
-	outfile=laspy.file.File("./data/interim/"+outfile_name,mode="w",header=infile.header)
-	outfile.points=point_left
-	outfile.close()
-	infile.close()
-	return outfile_name
-
 def tree_top_cand(filtered_file):
 	'''
 	Finding the Tree Tops as Seed for CLustering Based on Local Maximums
 	'''
 	distance_b = 300
-	infile = laspy.file.File('./data/interim/'+filtered_file,mode='rw')
+	infile = laspy.file.File("./data/processed/"+filtered_file,mode='rw')
 	point_3d = np.vstack([infile.x,infile.y,infile.z]).T
 	scales = infile.header.scale
 	offsets = infile.header.offset

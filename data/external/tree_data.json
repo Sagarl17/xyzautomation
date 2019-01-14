@@ -1,1 +1,0 @@
-{"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"}}, "features": [{"type": "Feature", "properties": {"TreeHeight": 31.098658954177857, "TreeRadius": 0.016365512912740972}, "geometry": {"type": "Point", "coordinates": [80.84847430675546, 12.889501739477417, 31.082458778065295]}}]}

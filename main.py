@@ -51,7 +51,7 @@ input_file_name = './data/interim/classified_'+sys.argv[1]
 
 
 if (os.path.exists("/data/interim/grounded_file.las")):
-	infile=laspy.file.File('/data/grounded_file.las',mode='rw')
+	infile=laspy.file.File('/data/interim/grounded_file.las',mode='rw')
 	Header_for_all = infile.header
 	ground_file_name = "grounded_file.las"
 	logger.info('Found Grounded LAS File Already LoadingInfo...')

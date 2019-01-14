@@ -8,7 +8,7 @@ def change_z_to_ht(input_file_name):
 	classess=infile.Classification
 	cand = [i for i in range(len(point_3d)) if classess[i]==2]
 	main_header = infile.header
-	outfile_name = "data/grounded_file.las"
+	outfile_name = "data/interim/grounded_file.las"
 	point_ground = point_3d[cand]
 	#mean_height = np.mean(point_ground[:,2])
 	pca = PCA(n_components=3)

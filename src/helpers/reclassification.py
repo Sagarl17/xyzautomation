@@ -55,9 +55,9 @@ def rc():
 	for i in range(len(point_3d)):
 		if point_3d[i,4]>=0.39*point_3d[i,3]+0.61*point_3d[i,5]:
 			point_3d[i,6]=5
-		elif (40<point_3d[i,3]/256<125 and 30<point_3d[i,4]/256<93 and 21<point_3d[i,5]/256<65 ):
+		elif (40<point_3d[i,3]<125 and 30<point_3d[i,4]<93 and 21<point_3d[i,5]<65 ):
 			point_3d[i,6]=2
-		elif (point_3d[i,3]/256<30 and point_3d[i,4]/256<30 and point_3d[i,5]/256<30):
+		elif (point_3d[i,3]<30 and point_3d[i,4]<30 and point_3d[i,5]<30):
 			point_3d[i,6]=11
 		else:
 			point_3d[i,6]=6

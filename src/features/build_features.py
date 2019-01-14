@@ -115,7 +115,7 @@ class featurecalculation:
 
 		# Calculating Color features for each points
 
-		rgb2hsv = plt.colors.rgb_to_hsv((small_data[:,3:6]/256).astype('uint8'))
+		rgb2hsv = plt.colors.rgb_to_hsv((small_data[:,3:6]).astype('uint8'))
 		training_data[:,15:18] = np.array(rgb2hsv)
 
 		nbr_color = []

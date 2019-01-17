@@ -24,12 +24,12 @@ def points_from_LAS(input_file_name):
 	infile.close()
 	return outfile_name
 
-def tree_top_cand(filtered_file):
+def tree_top_cand(trees_file):
 	'''
 	Finding the Tree Tops as Seed for CLustering Based on Local Maximums
 	'''
 	distance_b = 300
-	infile = laspy.file.File("./data/processed/"+filtered_file,mode='rw')
+	infile = laspy.file.File("./data/processed/"+trees_file,mode='rw')
 	point_3d = np.vstack([infile.x,infile.y,infile.z]).T
 	scales = infile.header.scale
 	offsets = infile.header.offset
@@ -54,7 +54,7 @@ def merging_adj_ttops(all_tree_top,no_intial_ttops):
 	'''
 	Merging the Tree Tops which are very close to each other
 	'''
-	merging_ttop_dist = 1500
+	merging_ttop_dist = 5
 	tree_ttops = KDTree(np.asarray(all_tree_top)[:,0:2])
 	b = tree_ttops.query_pairs(merging_ttop_dist)
 	adj_list = defaultdict(list)

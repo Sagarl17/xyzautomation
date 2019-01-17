@@ -6,3 +6,4 @@ env
 *.sav 
 /src/__pycache__/__init__.cpython-36.pyc
 *.pyc
+*.json

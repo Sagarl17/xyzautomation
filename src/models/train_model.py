@@ -223,7 +223,7 @@ for image_file_name in os.listdir('pointclouds'):
 
 		class_weights = class_weight.compute_class_weight('balanced',np.unique(y_train),y_train)
 		if (os.path.exists("xgbmodel")):
-			xgb = XGBClassifier(learning_rate =0.2,max_depth=16, n_estimators=600, subsample=0.5, colsample_bytree=0.5,objective= 'multi:softmax', nthread=3, scale_pos_weight=1, num_class=6,verbose_eval=True,xgb_model='model.sav')
+			xgb = XGBClassifier(learning_rate =0.2,max_depth=16, n_estimators=600, subsample=0.5, colsample_bytree=0.5,objective= 'multi:softmax', nthread=3, scale_pos_weight=1, num_class=6,verbose_eval=True,xgb_model='xgbmodel.sav')
 			xgb.fit(x_train,y_train)
 
 			filename = './models/model.sav'
@@ -235,4 +235,4 @@ for image_file_name in os.listdir('pointclouds'):
 
 			filename = './models/model.sav'
 			pickle.dump(xgb, open(filename,'wb'))
-			xgb.save_model("xgbmodel1")
+			xgb.save_model("xgbmodel")

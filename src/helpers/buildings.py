@@ -181,6 +181,7 @@ def Mergingpolygons():
 						if ((1-(poly[i].difference(poly[j]).area)/poly[i].area)>0.25  or  poly[i].contains(poly[j])==True ) :
 							poly[i]=poly[i].union(poly[j])
 							del poly[j]
+							Heights[i]=max(Heights[i],Heights[j])
 							del Heights[j]
 							index.remove(j)
 							for n, k in enumerate(index):
@@ -190,6 +191,7 @@ def Mergingpolygons():
 							poly[j]=poly[i].union(poly[j])
 							del poly[i]
 							del Heights[i]
+							Heights[j]=max(Heights[i],Heights[j])
 							index.remove(i)
 							for n, k in enumerate(index):
 								if k>i:

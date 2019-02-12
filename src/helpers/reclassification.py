@@ -16,7 +16,7 @@ def rc():
 	point_to_classify1 =np.take(infile.points,cpn)
 	#trees section
 	cin = [i for i in range(len(point_3d)) if classess[i]==5]
-	cand= [i for i in range(len(point_3d)) if classess[i]==5 and (point_3d[i,4]>=0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]>point_3d[i,3] and 0.85*point_3d[i,4]>point_3d[i,5])]
+	cand= [i for i in range(len(point_3d)) if classess[i]==5]
 
 	trees_points = np.take(infile.points,cand)
 	cin=list(set(cin)-set(cand))

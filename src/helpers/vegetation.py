@@ -1,13 +1,15 @@
+import os
+import json
 import laspy
+import geojson
+import shapely
+import progressbar
 import numpy as np
 from scipy.spatial import KDTree,ConvexHull
-import json
-from shapely.geometry import Polygon,mapping
-from collections import defaultdict,OrderedDict
-from pyproj import Proj,transform
-from scipy import spatial,optimize
+from shapely.geometry import Polygon,mapping,Point
 
-def points_from_LAS(input_file_name):
+
+def vegetation_LAS(input_file_name):
 	'''
 	extracting the tree points from the classified point cloud
 	'''
@@ -24,218 +26,182 @@ def points_from_LAS(input_file_name):
 	infile.close()
 	return outfile_name
 
-def tree_top_cand(trees_file):
-	'''
-	Finding the Tree Tops as Seed for CLustering Based on Local Maximums
-	'''
-	distance_b = 300
-	infile = laspy.file.File("./data/processed/"+trees_file,mode='rw')
-	point_3d = np.vstack([infile.x,infile.y,infile.z]).T
-	scales = infile.header.scale
-	offsets = infile.header.offset
-	count_tree_tops = np.shape(point_3d)[0]//distance_b + 1
-	int_tree_t = []
-	for i in range(count_tree_tops):
-		pts = point_3d[i*distance_b:(i+1)*distance_b]
-		z_c = pts[:,2]
-		local_max = np.argmax(z_c)
-		int_tree_t.append(pts[local_max])
-	infile.close()
-	return int_tree_t,count_tree_tops,point_3d,scales,offsets
+def Clustering(filename):
+	infile=laspy.file.File('./data/processed/full_trees.las',mode='rw')
+	infile2=laspy.file.File('./data/raw/'+filename,mode='rw')
+	main_header = infile.header
+	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
+	point_3d2=np.vstack([infile2.x,infile2.y,infile2.z]).T
+	th=np.vstack([infile.z]).T
+	ph=np.vstack([infile2.z]).T
+	d=len(point_3d)
 
-def dfs(adj_list, visited, vertex, result, key):
-    visited.add(vertex)
-    result[key].append(vertex)
-    for neighbor in adj_list[vertex]:
-        if neighbor not in visited:
-            dfs(adj_list, visited, neighbor, result, key)
+	tree = KDTree(point_3d)                                # Create KDtree representation of pointcloud
+	tree2= KDTree(point_3d2)                                       
+	Clusters=[] 
+	points=[]
+	intensity=[]
+	FC=set()                                               # Intialize empty cluster list
+	Q=[]
+	i=1
+	c=0
+	bar = progressbar.ProgressBar(maxval=len(point_3d), widgets=[progressbar.Bar('#', '[', ']'), ' ', progressbar.Percentage()])
+	bar.start()
+	for point in range(len(point_3d)):
+		l1=len(FC)
+		FC.add(point)
+		l2=len(FC)
+		if l2>l1:
+			Q.append(point)
+			p1=point_3d[point]
+			for point in Q:
+				NP=tree.query_ball_point(point_3d[point],r = .175)
+				for point1 in NP:
+					p2=point_3d[point1]
+					if (abs(p1[0]-p2[0])<=10 or abs(p2[1]-p1[1])<=10 ):
+						l1=len(FC)
+						FC.add(point1)
+						l2=len(FC)
+						if l2>l1:
+							Q.append(point1)
+							bar.update(len(FC))
+							
+						
+			F=[]					
+			if len(Q)>1000:	
+				point_to_store = np.take(point_3d,Q,axis=0)
+				minx =np.amin(point_to_store[:,2])
+				maxx =np.amax(point_to_store[:,2])
+				point=point_to_store[np.where(point_to_store[:,2] == maxx)]
+				n=tree2.query_ball_point(point,r=10)
+				n=list(n[0])
+				if len(n)==0:
+					h=maxx-minx
+					point_to_store = np.take(infile.points,Q)
+					s=np.ones(len(point_to_store))*h
+					x=np.ones(len(point_to_store))*i
+				else:
+					cp=np.take(point_3d2,n,axis=0)
+					mint =np.amin(cp[:,2])
+					h=maxx-mint
+					point_to_store = np.take(infile.points,Q)
+					s=np.ones(len(point_to_store))*h
+					x=np.ones(len(point_to_store))*i
+				if len(points)==0:
+					
+					points=point_to_store
+					intensity=x
+					synthetic=s
+				else:
+					points=np.append(points,point_to_store)
+					intensity=np.append(intensity,x)
+					synthetic=np.append(synthetic,s)
+				i=i+1
+				F=F+Q
+			Q=[]
 
-def merging_adj_ttops(all_tree_top,no_intial_ttops):
-	'''
-	Merging the Tree Tops which are very close to each other
-	'''
-	merging_ttop_dist = 5
-	tree_ttops = KDTree(np.asarray(all_tree_top)[:,0:2])
-	b = tree_ttops.query_pairs(merging_ttop_dist)
-	adj_list = defaultdict(list)
-	for x, y in b:
-		adj_list[x].append(y)
-		adj_list[y].append(x)
-
-	result = defaultdict(list)
-	visited = set()
-	for vertex in adj_list:
-		if vertex not in visited:
-			dfs(adj_list, visited, vertex, result, vertex)
-
-	all_train = []
-	for i in result.values():
-		for j in i:
-			all_train.append(j)
-	a = np.array([x for x in range(no_intial_ttops)])
-	remain = np.in1d(a,all_train,invert=True)
-	remaining_clusters = a[remain]
-	new_int_tree = []
-	for j in remaining_clusters:
-		new_int_tree.append(all_tree_top[j])
-	for i in result.values():
-		new_int_tree.append((np.asarray(all_tree_top)[i])[np.argmax((np.asarray(all_tree_top)[i])[:,2])])
-
-	return new_int_tree
-
-def getting_neighbour(new_ttops,point_3d):
-	'''
-	Clustering Based on the new tree tops and since there is a
-	correlation between height of the tree and radius of the tree using
-	the clustering threshold in terms of height only
-	'''
-	clustering_threshold_radius = 0.6
-	tree = KDTree(point_3d[:,0:2])
-	neighbours = []
-	point_completed = []
-	for tree_top in new_ttops:
-		pt_2d = tree_top[:2]
-		height = tree_top[2]
-		radius = height*clustering_threshold_radius
-		neighbour = np.setdiff1d(tree.query_ball_point(pt_2d,radius),point_completed,assume_unique=True)
-		neighbours.append(neighbour)
-		point_completed.extend(neighbour)
-	return neighbours
-
-def color_tree_las(neighbours,point_3d):
-	'''
-	Saving the LAS file for better visulaization of different trees
-	'''
-	color_dictionary = [[192,192,255],[192,192,128],[255,0,0],[0,255,0],[0,0,255],[255,255,0],[0,255,255],[255,0,255],[192,192,192]
-						,[128,128,128],[128,0,0],[128,128,0],[0,128,0],[128,0,128],[0,128,128],[0,0,128]]
-	colors = np.shape(neighbours)[0]
-
-	color_array = []
-	for le in range(colors):
-		color_array.append(color_dictionary[le%(len(color_dictionary))])
-
-	X_coor,Y_coor,Z_coor = [],[],[]
-	r,g,b = [],[],[]
-	for i in range(len(neighbours)):
-		if np.shape(point_3d[neighbours[i]])[0] > 100:
-			array_data = np.asarray(point_3d[neighbours[i]],dtype="int")
-			X_coor = np.concatenate((np.asarray(X_coor),np.asarray(array_data[:,0])),axis = 0)
-			Y_coor = np.concatenate((np.asarray(Y_coor),np.asarray(array_data[:,1])),axis = 0)
-			Z_coor = np.concatenate((np.asarray(Z_coor),np.asarray(array_data[:,2])),axis = 0)
-			r = np.concatenate((np.asarray(r),np.full(np.shape(array_data)[0], color_array[i][0])),axis = 0)
-			g = np.concatenate((np.asarray(g),np.full(np.shape(array_data)[0], color_array[i][1])),axis = 0)
-			b = np.concatenate((np.asarray(b),np.full(np.shape(array_data)[0], color_array[i][2])),axis = 0)
-
-	outfile=laspy.file.File("./data/interim/trees_colored.las",mode="w", header=Header_for_all)
-	outfile.X=X_coor
-	outfile.Y=Y_coor
-	outfile.Z=Z_coor
-	outfile.red = np.array(r)
-	outfile.green = np.array(g)
-	outfile.blue = np.array(b)
+	FC=list(FC)
+	outfile=laspy.file.File("Test.las",mode="w",header=infile.header)
+	outfile.points=points
 	outfile.close()
+	infile=laspy.file.File("Test.las",mode="r")
 
-def tree_parameters_npy(neighbours,point_3d,scales,offsets):
-	'''
-	Saving the Trees Parameter in different Formats as Required
-	'''
-	polygons = []
-	height_t = []
-	for i in range(len(neighbours)):
-		if np.shape(neighbours[i])[0] != 0 and np.shape(point_3d[neighbours[i]])[0]>10:
-			array = point_3d[neighbours[i]]
-			array = np.asarray(array)
-			i_2d = array[:,0:2]
-			ht_tree = np.max(array[:,2])
-			hull = ConvexHull(i_2d)
-			polygons.append(array[hull.vertices])
-			height_t.append(ht_tree*scales[2]+offsets[2])
-	all_data = np.array([polygons,height_t])
-	all_data = np.asarray(all_data)
-	#out_np_file = "tree_parameters"
-	#np.save(out_np_file , all_data)
-	return all_data
+	header = infile.header
+	outfile=laspy.file.File("./data/processed/Trees_Clustered.las",mode="w",header=header)
+	outfile.define_new_dimension(name = "height",data_type = 10, description = "Height")
+	outfile.define_new_dimension(name = "cluster_id",data_type = 5, description = "Cluster_id")
+	outfile.cluster_id=intensity
+	outfile.height = synthetic
+	outfile.x = infile.x
+	outfile.y = infile.y
+	outfile.z = infile.z
+	outfile.red = infile.red
+	outfile.green = infile.green
+	outfile.blue = infile.blue
+	bar.finish()
+	outfile.close()
+	os.remove("Test.las")
 
-def trees_parameter_json(parameters_tree,radius,location):
-    features = []
-    for i in range(np.shape(parameters_tree[1])[0]):
-        data_dict = OrderedDict()
-        data_dict["type"] = "Feature"
-        new_dict = OrderedDict()
-        new_dict["TreeHeight"] = float(parameters_tree[1][i])
-        new_dict["TreeRadius"] = float(radius[i])
-        data_dict["properties"]=  new_dict
-        data_dict["geometry"] = OrderedDict(type = "Point",
-                                    coordinates = location[i])
-        features.append(data_dict)
 
-    data = OrderedDict()
-    data["type"] = "FeatureCollection"
-    data["crs"] = OrderedDict(type = "name",properties = {"name":"urn:ogc:def:crs:OGC:1.3:CRS84"})
-    data["features"] = features
-    with open('./data/external/tree_data.json', 'w') as f:
-        json.dump(data,f)
+def Polygonextraction():
+	infile = laspy.file.File('./data/processed/Trees_Clustered.las',mode ='rw')
+	arr=[]
+	inten = max(infile.cluster_id)
+	print(inten)
 
-def shp_for_2D_polygon(polygons):
 
-	''' finding the shapefile for each tree '''
-	multipoly_3D=[]
-	for i in polygons:
-		poly = Polygon(i)
-		multipoly_3D.append(poly)
+	final = {"type":"FeatureCollection", "features": []}
 
-	w3D = shapefile.Writer(shapeType=shapefile.POLYGON)
-	count_shp=0
-	w3D.field("ID")
-	w3D.autoBalance = 1
-	for polygon in multipoly_3D:
-		count_shp=count_shp+1
-		polypar = []
-		polygon = mapping(polygon)["coordinates"][0]
-		for i in polygon:
-			fro = []
-			for dummy in i:
-				fro.append(float(dummy))
-			polypar.append(fro)
-		w3D.poly(parts=[polypar])
-		w3D.record(count_shp)
-	w3D.save('polygons')
+	for i in range(1,inten+1):
+		arr =[]
+		elev=max(infile.height[infile.cluster_id==i])
+		elev=float(elev)
+		feature ={"type":"Feature","geometry":{"type":"Point","coordinates":[]},"properties":{"id":i,"Height":elev}}
+		clusterx = infile.x[infile.cluster_id ==i]
+		clustery = infile.y[infile.cluster_id ==i]
 
-#############################################################################
-# 				Converting to LAT-LONG-Height coordinates                   #
+		points =np.vstack([clusterx,clustery]).T
+		
+		hull = ConvexHull(points)
+		for i in hull.vertices:
+			arr.append([points[i,0],points[i,1]])
+		polygon=Polygon(arr)
+		point=polygon.centroid
 
-def Proj_to_latlong(polygons,scales,offsets):
 
-	inProj = Proj(init='epsg:32644')
-	outProj = Proj(init='epsg:4326')
-	location = []
-	radius = []
-	for i in polygons:
-		r,c = leastsq_circle(i[:,0]*scales[0]+offsets[0],i[:,1]*scales[1]+offsets[1],i[:,2]*scales[2]+offsets[2])
-		x,y = transform(inProj,outProj,c[0],c[1])
-		cent = [x,y,c[2]]
-		location.append(cent)
-		radius.append(r)
+		feature['geometry']['coordinates']=[point.x,point.y]
+		final['features'].append(feature)
 
-	return radius,location
 
-def leastsq_circle(x,y,z):
-    # coordinates of the barycenter
-    x_m = np.mean(x)
-    y_m = np.mean(y)
-    z_m = np.mean(z)
-    center_estimate = x_m, y_m, z_m
-    center, ier = optimize.leastsq(f, center_estimate, args=(x,y,z))
-    xc, yc,zc = center
-    Ri       = calc_R(x, y,z, *center)
-    R        = Ri.mean()
-    return R,center
+	with open('./data/interim/Trees_data.json', 'w') as outfile:
+		json.dump(final, outfile)
+
+def Mergingpolygons():
+	# reading into two geojson objects, in a GCS (WGS84)
+	Heights=[]
+	with open('./data/interim/Trees_data.json') as geojson1:
+		poly1_geojson = json.load(geojson1)
+		x=poly1_geojson['features']
+		for t in x:
+			h=t['properties']
+			Heights.append(h['Height'])
+	poly=[]
+
+
+	for i in range(len(poly1_geojson['features'])):
+		poly.append(shapely.geometry.asShape(poly1_geojson['features'][i]['geometry']))
+	index=list(range(0,len(poly)))
+
+	# checking to make sure they registered as polygons
+	count=1
+	while(count<11):
+		print(count*10)
+		index=list(range(0,len(poly)))
+		for i in index:
+			for j in index:
+				if (poly[i].distance(poly[j])<4  and i!=j ):
+					x=(poly[i].x+poly[j].x)/2
+					y=(poly[i].y+poly[j].y)/2
+					poly[i]=Point(x,y)
+					del poly[j]
+					del Heights[j]
+					index.remove(j)
+					for n, k in enumerate(index):
+						if k>j:
+							index[n] = index[n]-1
+		count=count+1
 
 
 
-def calc_R(x,y,z, xc, yc, zc):
-    return np.sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
+	final = {"type":"FeatureCollection", "features": []}
 
-def f(c, x, y,z):
-    Ri = calc_R(x, y,z, *c)
-    return Ri - Ri.mean()
+	for i in range(len(poly)):
+			geojson_out=geojson.Feature(geometry=poly[i])
+			feature ={"type":"Feature","geometry":{"type":"Polygon","coordinates":[]},"properties":{"id":i,"Height":Heights[i]}}
+			feature['geometry']=geojson_out.geometry
+			final['features'].append(feature)
+
+	with open('./data/external/Trees.json', 'w') as outfile:
+		json.dump(final, outfile)
+
+

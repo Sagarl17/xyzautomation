@@ -22,7 +22,7 @@ def predict():
 			if math.isnan(test_data[i][j]):
 				test_data[i][j] = 0
 
-	c = model.predict(test_data[:,:-1])
+	c = model.predict(test_data)
 	logger.info("prediction done")
 	logger.info("Saving file")
 	infile = laspy.file.File('./data/raw/'+sys.argv[1], mode='rw')

@@ -32,7 +32,7 @@ class featurecalculation:
 			else :
 				full_training_data[divo *maximum_points:(divo +1)*maximum_points] = result[divo][:][:]
 			logger.info(divo)
-
+		
 		np.save('./data/interim/'+filename[:-4]+'_features' , full_training_data)
 
 		return
@@ -64,7 +64,7 @@ class featurecalculation:
 		w = [i/np.sum(i) for i in w]
 		w = np.array(w)
 
-		training_data = np.zeros((len(small_xyz),22))
+		training_data = np.zeros((len(small_xyz),21))
 
 		# Calculating Geometric features for each point
 		training_data[:,0] = np.power(np.multiply(np.multiply(w[:,0], w[:,1]), w[:,2]), 1/3)                                                    #omnivariance
@@ -115,7 +115,7 @@ class featurecalculation:
 
 		# Calculating Color features for each points
 
-		rgb2hsv = plt.colors.rgb_to_hsv((small_data[:,3:6]/256).astype('uint8'))
+		rgb2hsv = plt.colors.rgb_to_hsv((small_data[:,3:6]).astype('uint8'))
 		training_data[:,15:18] = np.array(rgb2hsv)
 
 		nbr_color = []
@@ -127,11 +127,6 @@ class featurecalculation:
 
 		nbr_color = None
 		rgb2hsv = None
-
-		y = small_data[:,6]
-		training_data[:,21] = np.array(y)
-
-
 		return training_data
 
 
@@ -139,15 +134,16 @@ class featurecalculation:
 
 if not(os.path.exists("./data/interim/"+filename[:-4]+"_features.npy")):
 
-	maximum_points = 100000
+	maximum_points = 50000
 	infile = laspy.file.File("./data/raw/"+filename, mode='rw')
-	col = {'x':infile.x, 'y':infile.y, 'z':infile.z, 'r':infile.red, 'g':infile.green, 'b':infile.blue, 'c':infile.classification}
+	col = {'x':infile.x, 'y':infile.y, 'z':infile.z, 'r':infile.red/256, 'g':infile.green/256, 'b':infile.blue/256, 'c':infile.classification}
 	data = ps.DataFrame(data=col)
 	xyz = data.as_matrix(columns = ['x', 'y', 'z'])
 	data = data.as_matrix(columns = ['x', 'y', 'z', 'r', 'g', 'b', 'c'])
 	division = np.shape(xyz)[0]//maximum_points + 1
-	full_training_data = np.zeros((np.shape(xyz)[0],22))
+	full_training_data = np.zeros((np.shape(xyz)[0],21))
 	fe=featurecalculation()
 	fe.features(filename)
 	infile.close()
 	del col,data,xyz,full_training_data,division
+	logger.info('features Calculation: Done')

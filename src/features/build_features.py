@@ -68,7 +68,7 @@ class featurecalculation:
 
 		# Calculating Geometric features for each point
 		training_data[:,0] = np.power(np.multiply(np.multiply(w[:,0], w[:,1]), w[:,2]), 1/3)                                                    #omnivariance
-		training_data[:,1] = -np.multiply(w[:,0], np.log(w[:,0]))-np.multiply(w[:,1], np.log(w[:,1]))-np.multiply(w[:,1], np.log(w[:,1]))       #eigenentropy
+		training_data[:,1] = -np.multiply(w[:,0], np.log(w[:,0]))-np.multiply(w[:,1], np.log(w[:,1]))-np.multiply(w[:,2], np.log(w[:,2]))       #eigenentropy
 		training_data[:,2] = np.divide(w[:,2]-w[:,0], w[:,2])                                                                                   #anistropy
 		training_data[:,3] =  np.divide(w[:,1]-w[:,0], w[:,2])                                                                                  #planarity
 		training_data[:,4] =  np.divide(w[:,2]-w[:,1], w[:,2])                                                                                  #linearity

@@ -133,12 +133,12 @@ class featurecalculation:
 
 if not(os.path.exists("./data/interim/"+filename[:-4]+"_features.npy")):
 
-	maximum_points = 50000
 	infile = laspy.file.File("./data/raw/"+filename, mode='rw')
 	col = {'x':infile.x, 'y':infile.y, 'z':infile.z, 'r':infile.red/256, 'g':infile.green/256, 'b':infile.blue/256, 'c':infile.classification}
 	data = ps.DataFrame(data=col)
 	xyz=data[['x', 'y', 'z']].to_numpy()
 	data=data[['x', 'y', 'z', 'r', 'g', 'b', 'c']].to_numpy()
+	maximum_points=np.shape(xyz)[0]//(multiprocessing.cpu_count()-1)+1
 	division = np.shape(xyz)[0]//maximum_points + 1
 	full_training_data = np.zeros((np.shape(xyz)[0],21))
 	fe=featurecalculation()

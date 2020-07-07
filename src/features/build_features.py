@@ -101,6 +101,18 @@ class featurecalculation:
 		training_data[:,9] = np.array(moment12)
 		training_data[:,10] = np.array(moment21)
 		training_data[:,11] = np.array(moment22)
+		training_data[:,12] = np.array(vertical_range)
+		training_data[:,13] = np.array(height_below)
+		moment11,moment12,moment21,moment22,temp = None,None,None,None,None
+
+		#height above
+		vertical_range = np.array(vertical_range)
+		height_below = np.array(height_below)
+		height_above = vertical_range - height_below
+		training_data[:,14] = np.array(height_above)
+
+		vertical_range,height_above,height_below = None,None,None
+
 
 		rgb2hsv = plt.colors.rgb_to_hsv((small_data[:,3:6]).astype('uint8'))
 		training_data[:,15:18] = np.array(rgb2hsv)

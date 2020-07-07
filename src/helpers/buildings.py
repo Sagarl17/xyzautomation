@@ -9,22 +9,21 @@ import shapely.ops
 import geojson
 import progressbar
 
-def building_LAS(ground_file_name):
-	infile=laspy.file.File('./'+ground_file_name,mode='rw')
+def building_LAS(filename):
+	infile=laspy.file.File('./data/interim/grounded_file_'+filename,mode='rw')
 	point_3d=np.vstack([infile.x,infile.y,infile.z,infile.red,infile.green,infile.blue]).T
 	classess=infile.classification
 	cand = [i for i in range(len(point_3d)) if classess[i]==6]
 	point_to_store = np.take(infile.points,cand)
 	point_to_return = point_3d[cand]
-	outfile_name = "buildings.las"
-	outfile=laspy.file.File("./data/processed/"+outfile_name,mode="w",header=infile.header)
+	outfile=laspy.file.File("./data/processed/buildings_"+filename,mode="w",header=infile.header)
 	outfile.points=point_to_store
 	outfile.close()
 
 	return point_to_return,infile.header
 
-def Clustering():
-	infile=laspy.file.File('./data/processed/buildings.las',mode='rw')
+def Clustering(filename):
+	infile=laspy.file.File("./data/processed/buildings_"+filename,mode='rw')
 	main_header = infile.header
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	d=len(point_3d)
@@ -73,10 +72,9 @@ def Clustering():
 	infile=laspy.file.File("Best.las",mode="r")
 
 	header = infile.header
-	outfile=laspy.file.File('./data/processed/Buildings_Clustered.las',mode="w",header=header)
+	outfile=laspy.file.File('./data/processed/Buildings_Clustered_'+filename,mode="w",header=header)
 	outfile.define_new_dimension(name = "cluster_id",data_type = 5, description = "Cluster_id")
 	outfile.cluster_id=intensity
-	print(len(infile.points))
 	outfile.x = infile.x
 	outfile.y = infile.y
 	outfile.z = infile.z
@@ -88,15 +86,14 @@ def Clustering():
 	os.remove("Best.las")
 	return
 
-def Polygonextraction():
-	infile = laspy.file.File('./data/processed/Buildings_Clustered.las',mode ='rw')
+def Polygonextraction(filename):
+	infile = laspy.file.File('./data/processed/Buildings_Clustered_'+filename,mode ='rw')
 	arr =[]
 	inten = max(infile.cluster_id)
 
 	final = {"type":"FeatureCollection", "features": []}
 
 	for i in range(1,inten+1):
-		print(i)
 		arr =[]
 		feature ={"type":"Feature","geometry":{"type":"Polygon","coordinates":[]},"properties":{"id":i}}
 		clusterx = infile.x[infile.cluster_id ==i]
@@ -105,7 +102,6 @@ def Polygonextraction():
 		clusterz = infile.z[infile.cluster_id ==i]
 
 		clusterz.sort()
-		height = (sum(clusterz[-101:-1]) - sum(clusterz[0:100]))/100
 		maxh=clusterz[-1]-clusterz[0]
 
 
@@ -150,13 +146,13 @@ def Polygonextraction():
 		final['features'].append(feature)
 
 
-	with open('./data/interim/Buildings_data.json', 'w') as outfile:
+	with open('./data/interim/Buildings_data_'+filename[:-4]+'.json', 'w') as outfile:
 		json.dump(final, outfile)
 
-def Mergingpolygons():
+def Mergingpolygons(filename):
 	# reading into two geojson objects, in a GCS (WGS84)
 	Heights=[]
-	with open('./data/interim/Buildings_data.json') as geojson1:
+	with open('./data/interim/Buildings_data_'+filename[:-4]+'.json') as geojson1:
 		poly1_geojson = json.load(geojson1)
 		x=poly1_geojson['features']
 		for t in x:
@@ -170,13 +166,11 @@ def Mergingpolygons():
 
 	count=1
 	while(count<11):
-		print(count*10)
 		index=list(range(0,len(poly)))
 		# checking to make sure they registered as polygons
 		for i in index:
 			for j in index:
 				if (len(poly)>i) and (len(poly)>j):
-					print(len(poly),i,j)
 					if (poly[i].intersects(poly[j])==True and i!=j ):
 						if ((1-(poly[i].difference(poly[j]).area)/poly[i].area)>0.25  or  poly[i].contains(poly[j])==True ) :
 							poly[i]=poly[i].union(poly[j])
@@ -208,6 +202,6 @@ def Mergingpolygons():
 			final['features'].append(feature)
 
 
-	with open('./data/external/Buildings.json', 'w') as outfile:
+	with open('./data/external/Buildings_'+filename[:-4]+'.json', 'w') as outfile:
 	    json.dump(final, outfile)
 	return

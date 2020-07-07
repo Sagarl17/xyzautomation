@@ -9,22 +9,21 @@ import numpy as np
 from scipy.spatial import KDTree,ConvexHull
 from shapely.geometry import Polygon,mapping,Point
 
-def road_LAS(ground_file_name):
-	infile=laspy.file.File('./'+ground_file_name,mode='rw')
+def road_LAS(filename):
+	infile=laspy.file.File('./data/interim/grounded_file_'+filename,mode='rw')
 	point_3d=np.vstack([infile.x,infile.y,infile.z,infile.red,infile.green,infile.blue]).T
 	classess=infile.classification
 	cand = [i for i in range(len(point_3d)) if classess[i]==11]
 	point_to_store = np.take(infile.points,cand)
 	point_to_return = point_3d[cand]
-	outfile_name = "roads.las"
-	outfile=laspy.file.File("./data/processed/"+outfile_name,mode="w",header=infile.header)
+	outfile=laspy.file.File("./data/processed/roads_"+filename,mode="w",header=infile.header)
 	outfile.points=point_to_store
 	outfile.close()
 
 	return point_to_return,infile.header
 
-def Clustering():
-	infile=laspy.file.File('./data/processed/roads.las',mode='rw')
+def Clustering(filename):
+	infile=laspy.file.File("./data/processed/roads_"+filename,mode='rw')
 	main_header = infile.header
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	d=len(point_3d)
@@ -77,7 +76,7 @@ def Clustering():
 	infile=laspy.file.File("Rest.las",mode="r")
 
 	header = infile.header
-	outfile=laspy.file.File("./data/processed/Roads_Clustered.las",mode="w",header=header)
+	outfile=laspy.file.File("./data/processed/Roads_Clustered_"+filename,mode="w",header=header)
 	outfile.define_new_dimension(name = "cluster_id",data_type = 5, description = "Cluster_id")
 	outfile.cluster_id=intensity
 	outfile.x = infile.x
@@ -90,18 +89,16 @@ def Clustering():
 	outfile.close()
 	os.remove("Rest.las")
 
-def Polygonextraction():
-	infile = laspy.file.File('./data/processed/Roads_Clustered.las',mode ='rw')
+def Polygonextraction(filename):
+	infile = laspy.file.File("./data/processed/Roads_Clustered_"+filename,mode ='rw')
 	arr =[]
 	inten = max(infile.cluster_id)
-	print(inten)
 
 	final = {"type":"FeatureCollection", "features": []}
 
 	for i in range(1,inten+1):
 		arr =[]
 		feature ={"type":"Feature","geometry":{"type":"Polygon","coordinates":[]},"properties":{"id":i}}
-		print(i)
 		clusterx = infile.x[infile.cluster_id ==i]
 		clustery = infile.y[infile.cluster_id ==i]
 
@@ -115,11 +112,11 @@ def Polygonextraction():
 		final['features'].append(feature)
 
 
-	with open('./data/processed/Roads_data.json', 'w') as outfile:
+	with open('./data/processed/Roads_data_'+filename[:-4]+'.json', 'w') as outfile:
 		json.dump(final, outfile)
 
-def Mergingpolygons():
-	with open('./data/processed/Roads_data.json') as geojson1:
+def Mergingpolygons(filename):
+	with open('./data/processed/Roads_data_'+filename[:-4]+'.json') as geojson1:
 		poly1_geojson = json.load(geojson1)
 	poly=[]
 
@@ -130,7 +127,6 @@ def Mergingpolygons():
 	# checking to make sure they registered as polygons
 	count=1
 	while(count<11):
-		print(count*10)
 		index=list(range(0,len(poly)))
 		for i in index:
 			for j in index:
@@ -152,5 +148,5 @@ def Mergingpolygons():
 			feature['geometry']=geojson_out.geometry
 			final['features'].append(feature)
 
-	with open('./data/external/Roads.json', 'w') as outfile:
+	with open('./data/external/Roads_'+filename[:-4]+'.json', 'w') as outfile:
 		json.dump(final, outfile)

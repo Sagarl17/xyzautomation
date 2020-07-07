@@ -3,12 +3,12 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 def change_z_to_ht(input_file_name):
-	infile=laspy.file.File(input_file_name,mode='rw')
+	infile=laspy.file.File('./data/interim/classified_'+input_file_name,mode='rw')
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	classess=infile.Classification
 	cand = [i for i in range(len(point_3d)) if classess[i]==2]
 	main_header = infile.header
-	outfile_name = "./data/interim/grounded_file.las"
+	outfile_name = "./data/interim/grounded_file_"+input_file_name
 	point_ground = point_3d[cand]
 	#mean_height = np.mean(point_ground[:,2])
 	pca = PCA(n_components=3)

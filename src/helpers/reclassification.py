@@ -10,7 +10,7 @@ def rc():
 	point_3d=np.vstack([infile.x,infile.y,infile.z,infile.red,infile.green,infile.blue]).T
 	classess=infile.classification
 	cin = [i for i in range(len(point_3d)) if classess[i]==6]
-	cand = [i for i in range(len(point_3d)) if ((classess[i]==6) and (point_3d[i,4]<0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]<point_3d[i,3] and 0.85*point_3d[i,4]<point_3d[i,5]))]
+	cand = [i for i in range(len(point_3d)) if ((classess[i]==6) and (point_3d[i,4]<0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]>point_3d[i,3] and 0.85*point_3d[i,4]>point_3d[i,5]))]
 	building_points = np.take(infile.points,cand)
 	cpn=list(set(cin)-set(cand))
 	point_to_classify1 =np.take(infile.points,cpn)
@@ -24,7 +24,7 @@ def rc():
 
 	#roads section
 	cin = [i for i in range(len(point_3d)) if classess[i]==11]
-	cand = [i for i in range(len(point_3d)) if ((classess[i]==11) and (point_3d[i,4]<0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]<point_3d[i,3] and 0.85*point_3d[i,4]<point_3d[i,5]))]
+	cand = [i for i in range(len(point_3d)) if ((classess[i]==11) and (point_3d[i,4]<0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]>point_3d[i,3] and 0.85*point_3d[i,4]>point_3d[i,5]))]
 
 	road_points=np.take(infile.points,cand)
 	cin=list(set(cin)-set(cand))
@@ -33,7 +33,7 @@ def rc():
     #ground section
 
 	cin = [i for i in range(len(point_3d)) if classess[i]==2]
-	cand = [i for i in range(len(point_3d)) if ((classess[i]==2) and (point_3d[i,4]<0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]<point_3d[i,3] and 0.85*point_3d[i,4]<point_3d[i,5]))]
+	cand = [i for i in range(len(point_3d)) if ((classess[i]==2) and (point_3d[i,4]<0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]>point_3d[i,3] and 0.85*point_3d[i,4]>point_3d[i,5]))]
 
 	ground_points=np.take(infile.points,cand)
 	cin=list(set(cin)-set(cand))
@@ -53,7 +53,7 @@ def rc():
 	point_3d=np.vstack([outfile.x,outfile.y,outfile.z,outfile.red,outfile.green,outfile.blue,outfile.classification]).T
 	classess=outfile.classification
 	for i in range(len(point_3d)):
-		if point_3d[i,4]>=0.45*point_3d[i,3]+0.65*point_3d[i,5] and point_3d[i,4]>point_3d[i,3] and point_3d[i,4]>point_3d[i,5]:
+		if point_3d[i,4]>=0.45*point_3d[i,3]+0.65*point_3d[i,5] and 0.85*point_3d[i,4]>point_3d[i,3] and 0.85*point_3d[i,4]>point_3d[i,5]:
 			point_3d[i,6]=5
 		elif (40<point_3d[i,3]/256<125 and 30<point_3d[i,4]/256<93 and 21<point_3d[i,5]/256<65 ):
 			point_3d[i,6]=2
@@ -93,4 +93,5 @@ def rc():
 	outfile.classification=cl
 	outfile.close()
 	return
+
 

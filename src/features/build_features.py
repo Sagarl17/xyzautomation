@@ -1,17 +1,17 @@
-import numpy as np
-import multiprocessing
-
+import os
 import sys
 import math
 import laspy
 import scipy
+import numpy as np
+import pandas as ps
 import scipy.linalg
+import multiprocessing
 import matplotlib as plt
 from numpy import linalg as LA
 from scipy import spatial,optimize
 from sklearn.decomposition import PCA
-import os
-import pandas as ps
+
 
 
 
@@ -101,19 +101,6 @@ class featurecalculation:
 		training_data[:,9] = np.array(moment12)
 		training_data[:,10] = np.array(moment21)
 		training_data[:,11] = np.array(moment22)
-		training_data[:,12] = np.array(vertical_range)
-		training_data[:,13] = np.array(height_below)
-		moment11,moment12,moment21,moment22,temp = None,None,None,None,None
-
-		#height above
-		vertical_range = np.array(vertical_range)
-		height_below = np.array(height_below)
-		height_above = vertical_range - height_below
-		training_data[:,14] = np.array(height_above)
-
-		vertical_range,height_above,height_below = None,None,None
-
-		# Calculating Color features for each points
 
 		rgb2hsv = plt.colors.rgb_to_hsv((small_data[:,3:6]).astype('uint8'))
 		training_data[:,15:18] = np.array(rgb2hsv)
@@ -138,8 +125,8 @@ if not(os.path.exists("./data/interim/"+filename[:-4]+"_features.npy")):
 	infile = laspy.file.File("./data/raw/"+filename, mode='rw')
 	col = {'x':infile.x, 'y':infile.y, 'z':infile.z, 'r':infile.red/256, 'g':infile.green/256, 'b':infile.blue/256, 'c':infile.classification}
 	data = ps.DataFrame(data=col)
-	xyz = data.as_matrix(columns = ['x', 'y', 'z'])
-	data = data.as_matrix(columns = ['x', 'y', 'z', 'r', 'g', 'b', 'c'])
+	xyz=data[['x', 'y', 'z']].to_numpy()
+	data=data[['x', 'y', 'z', 'r', 'g', 'b', 'c']].to_numpy()
 	division = np.shape(xyz)[0]//maximum_points + 1
 	full_training_data = np.zeros((np.shape(xyz)[0],21))
 	fe=featurecalculation()

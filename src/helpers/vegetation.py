@@ -1,33 +1,31 @@
 import os
 import json
+import math
 import laspy
 import geojson
 import shapely
 import progressbar
 import numpy as np
 from scipy.spatial import KDTree,ConvexHull
-from shapely.geometry import Polygon,mapping,Point
+from shapely.geometry import Polygon,mapping,Point,LineString
 
 
-def vegetation_LAS(input_file_name):
+def vegetation_LAS(filename):
 	'''
 	extracting the tree points from the classified point cloud
 	'''
-	infile=laspy.file.File('./'+input_file_name,mode='rw')
+	infile=laspy.file.File('./data/interim/grounded_file_'+filename,mode='rw')
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
 	classess=infile.classification
 	cand = [i for i in range(len(point_3d)) if classess[i]==5]
 	point_3d = np.take(infile.points,cand)
-
-	outfile_name = "full_trees.las"
-	outfile=laspy.file.File("./data/processed/"+outfile_name,mode="w",header=infile.header)
+	outfile=laspy.file.File('./data/processed/full_trees_'+filename,mode='w',header=infile.header)
 	outfile.points=point_3d
 	outfile.close()
 	infile.close()
-	return outfile_name
 
 def Clustering(filename):
-	infile=laspy.file.File('./data/processed/full_trees.las',mode='rw')
+	infile=laspy.file.File('./data/processed/full_trees_'+filename,mode='rw')
 	infile2=laspy.file.File('./data/raw/'+filename,mode='rw')
 	main_header = infile.header
 	point_3d=np.vstack([infile.x,infile.y,infile.z]).T
@@ -68,7 +66,7 @@ def Clustering(filename):
 							
 						
 			F=[]					
-			if len(Q)>1000:	
+			if len(Q)>100:	
 				point_to_store = np.take(point_3d,Q,axis=0)
 				minx =np.amin(point_to_store[:,2])
 				maxx =np.amax(point_to_store[:,2])
@@ -101,15 +99,15 @@ def Clustering(filename):
 			Q=[]
 
 	FC=list(FC)
-	outfile=laspy.file.File("Test.las",mode="w",header=infile.header)
+	outfile=laspy.file.File('Test.las',mode='w',header=infile.header)
 	outfile.points=points
 	outfile.close()
-	infile=laspy.file.File("Test.las",mode="r")
+	infile=laspy.file.File('Test.las',mode='r')
 
 	header = infile.header
-	outfile=laspy.file.File("./data/processed/Trees_Clustered.las",mode="w",header=header)
-	outfile.define_new_dimension(name = "height",data_type = 10, description = "Height")
-	outfile.define_new_dimension(name = "cluster_id",data_type = 5, description = "Cluster_id")
+	outfile=laspy.file.File('./data/processed/Trees_Clustered_'+filename,mode='w',header=header)
+	outfile.define_new_dimension(name = 'height',data_type = 10, description = 'Height')
+	outfile.define_new_dimension(name = 'cluster_id',data_type = 5, description = 'Cluster_id')
 	outfile.cluster_id=intensity
 	outfile.height = synthetic
 	outfile.x = infile.x
@@ -120,51 +118,58 @@ def Clustering(filename):
 	outfile.blue = infile.blue
 	bar.finish()
 	outfile.close()
-	os.remove("Test.las")
+	os.remove('Test.las')
 
 
-def Polygonextraction():
-	infile = laspy.file.File('./data/processed/Trees_Clustered.las',mode ='rw')
+def Polygonextraction(filename):
+	infile = laspy.file.File('./data/processed/Trees_Clustered_'+filename,mode ='rw')
 	arr=[]
 	inten = max(infile.cluster_id)
-	print(inten)
 
 
-	final = {"type":"FeatureCollection", "features": []}
+	final = {'type':'FeatureCollection', 'features': []}
 
 	for i in range(1,inten+1):
 		arr =[]
 		elev=max(infile.height[infile.cluster_id==i])
 		elev=float(elev)
-		feature ={"type":"Feature","geometry":{"type":"Point","coordinates":[]},"properties":{"id":i,"Height":elev}}
+
 		clusterx = infile.x[infile.cluster_id ==i]
 		clustery = infile.y[infile.cluster_id ==i]
 
 		points =np.vstack([clusterx,clustery]).T
-		
+
 		hull = ConvexHull(points)
-		for i in hull.vertices:
-			arr.append([points[i,0],points[i,1]])
+		for hv in hull.vertices:
+			arr.append([points[hv,0],points[hv,1]])
 		polygon=Polygon(arr)
 		point=polygon.centroid
+		coord=list(polygon.exterior.coords)
+		r=10000
+		for c in range(1,len(coord)):
+			line=LineString([coord[c],coord[c-1]])
+			d=line.distance(point)
+			if d<r:
+				r=d
 
-
-		feature['geometry']['coordinates']=[point.x,point.y]
+		feature ={"type":"Feature","geometry":{"type":"Point","coordinates":[point.x,point.y]},"properties":{"id":int(i),"height":float(elev),"radius":float(r),"area":float(math.pi*r*r)}}
 		final['features'].append(feature)
 
 
-	with open('./data/interim/Trees_data.json', 'w') as outfile:
+	with open('./data/interim/Trees_data_'+filename[:-4]+'.json', 'w') as outfile:
 		json.dump(final, outfile)
 
-def Mergingpolygons():
+def Mergingpolygons(filename):
 	# reading into two geojson objects, in a GCS (WGS84)
 	Heights=[]
-	with open('./data/interim/Trees_data.json') as geojson1:
+	Radius=[]
+	with open('./data/interim/Trees_data_'+filename[:-4]+'.json') as geojson1:
 		poly1_geojson = json.load(geojson1)
 		x=poly1_geojson['features']
 		for t in x:
 			h=t['properties']
-			Heights.append(h['Height'])
+			Heights.append(h['height'])
+			Radius.append(h['radius'])
 	poly=[]
 
 
@@ -175,33 +180,51 @@ def Mergingpolygons():
 	# checking to make sure they registered as polygons
 	count=1
 	while(count<11):
-		print(count*10)
 		index=list(range(0,len(poly)))
 		for i in index:
 			for j in index:
-				if (poly[i].distance(poly[j])<4  and i!=j ):
-					x=(poly[i].x+poly[j].x)/2
-					y=(poly[i].y+poly[j].y)/2
-					poly[i]=Point(x,y)
-					del poly[j]
-					del Heights[j]
-					index.remove(j)
-					for n, k in enumerate(index):
-						if k>j:
-							index[n] = index[n]-1
+				if (len(poly)>i) and (len(poly)>j):
+					if (poly[i].distance(poly[j])<3.75  and i!=j ):
+						x=(poly[i].x+poly[j].x)/2
+						y=(poly[i].y+poly[j].y)/2
+						d=poly[i].distance(poly[j])
+						if Radius[i]>=d+Radius[j]:
+							del poly[j]
+							del Heights[j]
+							del Radius[j]
+						elif Radius[j]>=d+Radius[i]:
+							poly[i]=poly[j]
+							Heights[i]=Heights[j]
+							Radius[i]=Radius[j]
+							del poly[j]
+							del Heights[j]
+							del Radius[j]
+						else:
+							x=(((Radius[i]-Radius[j]+d)*poly[i].x)+((Radius[j]-Radius[i]+d)*poly[j].x))/(2*d)
+							y=(((Radius[i]-Radius[j]+d)*poly[i].y)+((Radius[j]-Radius[i]+d)*poly[j].y))/(2*d)
+							Radius[i]=(d+Radius[i]+Radius[j])/2
+							poly[i]=Point(x,y)
+							Heights[i]=max(Heights[i],Heights[j])
+							del poly[j]
+							del Heights[j]
+							del Radius[j]
+						index.remove(j)
+						for n, k in enumerate(index):
+							if k>j:
+								index[n] = index[n]-1
 		count=count+1
 
 
 
-	final = {"type":"FeatureCollection", "features": []}
+	final = {'type':'FeatureCollection', 'features': []}
 
 	for i in range(len(poly)):
 			geojson_out=geojson.Feature(geometry=poly[i])
-			feature ={"type":"Feature","geometry":{"type":"Polygon","coordinates":[]},"properties":{"id":i,"Height":Heights[i]}}
+			feature ={"type":"Feature","geometry":{"type":"Polygon","coordinates":[]},"properties":{"id":i+1,"height":Heights[i],"radius":Radius[i],"area":Radius[i]*Radius[i]*math.pi}}
 			feature['geometry']=geojson_out.geometry
 			final['features'].append(feature)
 
-	with open('./data/external/Trees.json', 'w') as outfile:
+	with open('./data/external/Trees_'+filename[:-4]+'.json', 'w') as outfile:
 		json.dump(final, outfile)
 
 

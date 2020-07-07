@@ -66,6 +66,10 @@ Project Organization
 --------
 How to Run :
 
-->python main.py <path to las file> <combinations of classifications that are required by the user>
+Download file from the following link and place it in the models folder:
+https://drive.google.com/file/d/1Sz_iDe3SLN_rHqBkoUt7bcnfGJjtGFaI/view?usp=sharing
 
-Ex: python main.py example.las buildings trees 
+Place the pointcloud(.las) to be processed in /data/raw/ and run the following command in the main folder:
+    python main.py "name of las file" "class1" "class2"
+
+    Ex: python main.py example.las buildings trees 

@@ -79,7 +79,7 @@ if ('trees' in sys.argv):
 	if (os.path.exists('./data/processed/Trees_Clustered_'+filename)):
 		logger.info('Clustering Already Done')
 	else :
-		vegetation.Clustering(filename)
+		exec(open('./src/helpers/veg_cluster.py').read())
 		logger.info('Clustering Extracted')
 
 	logger.info('Trees Clustering : Finished')
@@ -92,7 +92,7 @@ if ('trees' in sys.argv):
 	if (os.path.exists('./data/interim/Trees_data_'+filename[:-4]+'.json')):
 		logger.info('Tree points already extracted')
 	else :
-		vegetation.Polygonextraction(filename)
+		exec(open('./src/helpers/veg_poly.py').read())
 		logger.info('Point Extraction Completed')
 
 	logger.info('Creating Points : Finished')
@@ -110,6 +110,8 @@ if ('trees' in sys.argv):
 		logger.info('Tree Points merged')
 
 	logger.info('Merging Points : Finished')
+
+#################################################################################
 
 #################################################################################
 
